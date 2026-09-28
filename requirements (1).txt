@@ -1,0 +1,5 @@
+ultralytics
+paho-mqtt>=2.0
+opencv-python-headless
+numpy
+airsim   # only for --source airsim

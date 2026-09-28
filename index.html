@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SAR Drone Command</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+:root{--bg:#f3f5f7;--panel:#fff;--ink:#14202b;--mute:#5d6b78;--line:#d6dde3;--alert:#d9480f;--ok:#2b8a3e;--drone:#1c6ed5}
+*{box-sizing:border-box}html,body{height:100%;margin:0;font:15px/1.4 system-ui,sans-serif;color:var(--ink);background:var(--bg)}
+main{display:grid;grid-template-columns:340px 1fr;height:100%}
+aside{background:var(--panel);border-right:1px solid var(--line);overflow:auto;padding:14px}
+h1{font-size:18px;margin:0 0 4px}h2{font-size:14px;margin:18px 0 8px;color:var(--mute);font-weight:600}
+#map{height:100%}
+.card{border:1px solid var(--line);border-radius:6px;padding:8px;margin-bottom:8px;display:flex;gap:8px;background:#fff}
+.card img{width:48px;height:64px;object-fit:cover;border-radius:4px;background:#ddd}
+.card.new{border-left:4px solid var(--alert)}.card.rescued{opacity:.55;border-left:4px solid var(--ok)}
+.meta{font-size:12px;color:var(--mute)}
+button{font:inherit;font-size:12px;padding:4px 8px;border:1px solid var(--line);background:#fff;border-radius:4px;cursor:pointer}
+button:hover{border-color:var(--ink)}button:focus-visible,a:focus-visible{outline:2px solid var(--drone);outline-offset:2px}
+a{color:var(--drone)}#brief{white-space:pre-wrap;font-size:13px;background:#eef3f8;padding:8px;border-radius:6px}
+#brief.empty{color:var(--mute)}.empty{color:var(--mute);font-size:13px}
+@media(max-width:800px){main{grid-template-columns:1fr;grid-template-rows:45% 55%}aside{order:2}}
+</style></head><body><main>
+<aside>
+  <h1>Search and rescue</h1><div class="meta" id="conn">Connecting…</div>
+  <h2>Responder brief</h2><div id="brief" class="empty">No brief yet. The planner posts one when survivors are found.</div>
+  <h2>Survivors found (<span id="n">0</span>)</h2><div id="list"><div class="empty">Waiting for detections.</div></div>
+  <h2>Drones</h2><div id="drones" class="meta">No drones reporting.</div>
+</aside><div id="map"></div></main>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const map=L.map('map').setView([19.076,72.8777],16);
+L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(map); // use a local tile server for offline field use
+const humans={},hm={},dm={};let fitted=false;
+const pin=c=>L.divIcon({className:'',html:`<div style="width:16px;height:16px;border-radius:50%;background:${c};border:3px solid #fff;box-shadow:0 0 0 1px #14202b"></div>`,iconSize:[16,16]});
+const dIcon=L.divIcon({className:'',html:'<div style="width:12px;height:12px;background:#1c6ed5;transform:rotate(45deg);border:2px solid #fff"></div>',iconSize:[12,12]});
+function setHuman(h){humans[h.id]=h;const c=h.status==='rescued'?'#2b8a3e':'#d9480f';
+ if(!hm[h.id]){hm[h.id]=L.marker([h.lat,h.lon],{icon:pin(c)}).addTo(map)}else{hm[h.id].setLatLng([h.lat,h.lon]).setIcon(pin(c))}
+ hm[h.id].bindPopup(`Survivor #${h.id}<br>Confidence ${(h.confidence*100|0)}%`);
+ if(!fitted){map.setView([h.lat,h.lon],18);fitted=true}render()}
+function render(){const l=document.getElementById('list'),hs=Object.values(humans);document.getElementById('n').textContent=hs.length;
+ if(!hs.length)return;l.innerHTML='';hs.sort((a,b)=>b.last_seen-a.last_seen).forEach(h=>{
+  const d=document.createElement('div');d.className='card '+h.status;
+  const gm=`https://www.google.com/maps?q=${h.lat.toFixed(6)},${h.lon.toFixed(6)}`;
+  const sms=`sms:?body=${encodeURIComponent('Survivor located: '+gm)}`;
+  d.innerHTML=`${h.thumb?`<img alt="Survivor thumbnail" src="data:image/jpeg;base64,${h.thumb}">`:'<img alt="">'}
+  <div><b>Survivor #${h.id}</b> <span class="meta">${(h.confidence*100|0)}% · ${h.drone_id}</span>
+  <div class="meta">${h.lat.toFixed(5)}, ${h.lon.toFixed(5)}</div>
+  <div style="margin-top:4px;display:flex;gap:6px;flex-wrap:wrap"><a href="${gm}" target="_blank" rel="noopener">Open map</a>
+  <a href="${sms}">Send SMS</a><button data-id="${h.id}" data-s="${h.status==='rescued'?'new':'rescued'}">${h.status==='rescued'?'Reopen':'Mark rescued'}</button></div></div>`;
+  d.querySelector('button').onclick=e=>fetch(`/api/human/${e.target.dataset.id}/${e.target.dataset.s}`,{method:'POST'});
+  l.appendChild(d)})}
+function setDrone(t){if(!dm[t.drone_id])dm[t.drone_id]=L.marker([t.lat,t.lon],{icon:dIcon}).addTo(map);dm[t.drone_id].setLatLng([t.lat,t.lon]);
+ dm[t.drone_id]._t=t;document.getElementById('drones').innerHTML=Object.entries(dm).map(([k,m])=>`${k}: ${m._t.alt_agl.toFixed(0)} m AGL · ${m._t.fps??'–'} FPS`).join('<br>')}
+function setBrief(t){const b=document.getElementById('brief');b.className='';b.textContent=t}
+function connect(){const ws=new WebSocket((location.protocol==='https:'?'wss://':'ws://')+location.host+'/ws');
+ ws.onopen=()=>document.getElementById('conn').textContent='Live';
+ ws.onclose=()=>{document.getElementById('conn').textContent='Disconnected. Retrying…';setTimeout(connect,2000)};
+ ws.onmessage=e=>{const m=JSON.parse(e.data);
+  if(m.type==='state'){m.data.humans.forEach(setHuman);Object.values(m.data.drones).forEach(setDrone);if(m.data.brief)setBrief(m.data.brief)}
+  else if(m.type==='human')setHuman(m.data);else if(m.type==='drone')setDrone(m.data);else if(m.type==='brief')setBrief(m.data)}}
+connect();
+</script></body></html>

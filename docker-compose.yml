@@ -1,0 +1,17 @@
+services:
+  broker:
+    image: eclipse-mosquitto:2
+    ports: ["1883:1883"]
+    volumes: ["./mosquitto.conf:/mosquitto/config/mosquitto.conf"]
+  dashboard:
+    build: ./dashboard
+    environment: {MQTT_HOST: broker}
+    ports: ["8000:8000"]
+    depends_on: [broker]
+  planner:
+    build: ./planner
+    environment:
+      MQTT_HOST: broker
+      LLM_URL: ${LLM_URL:-}          # optional, e.g. http://host.docker.internal:11434/v1
+      LLM_MODEL: ${LLM_MODEL:-}
+    depends_on: [broker]

@@ -1,0 +1,60 @@
+{
+  "SettingsVersion": 1.2,
+  "SimMode": "Multirotor",
+  "ClockSpeed": 1.0,
+  "Vehicles": {
+    "Drone1_Wide": {
+      "VehicleType": "SimpleFlight", "AutoCreate": true,
+      "X": 0, "Y": 0, "Z": 0,
+      "Sensors": {
+        "Imu": {"SensorType": 2, "Enabled": true},
+        "Gps": {"SensorType": 3, "Enabled": true},
+        "Barometer": {"SensorType": 1, "Enabled": true},
+        "Magnetometer": {"SensorType": 4, "Enabled": true}
+      },
+      "Cameras": {
+        "rgb": {
+          "CaptureSettings": [{"ImageType": 0, "Width": 640, "Height": 480, "FOV_Degrees": 90}],
+          "X": 0.3, "Y": 0, "Z": 0.1, "Pitch": -60, "Roll": 0, "Yaw": 0
+        }
+      }
+    },
+    "Drone2_Structure": {
+      "VehicleType": "SimpleFlight", "AutoCreate": true,
+      "X": 0, "Y": 3, "Z": 0,
+      "Sensors": {
+        "Imu": {"SensorType": 2, "Enabled": true},
+        "Gps": {"SensorType": 3, "Enabled": true},
+        "Barometer": {"SensorType": 1, "Enabled": true},
+        "Lidar": {"SensorType": 6, "Enabled": true, "NumberOfChannels": 16, "Range": 100,
+                  "PointsPerSecond": 50000, "RotationsPerSecond": 10}
+      },
+      "Cameras": {
+        "rgb": {
+          "CaptureSettings": [{"ImageType": 0, "Width": 640, "Height": 480, "FOV_Degrees": 90}],
+          "X": 0.3, "Y": 0, "Z": 0.1, "Pitch": -30, "Roll": 0, "Yaw": 0
+        }
+      }
+    },
+    "Drone3_Close": {
+      "VehicleType": "SimpleFlight", "AutoCreate": true,
+      "X": 0, "Y": 6, "Z": 0,
+      "Sensors": {
+        "Imu": {"SensorType": 2, "Enabled": true},
+        "Gps": {"SensorType": 3, "Enabled": true},
+        "Barometer": {"SensorType": 1, "Enabled": true},
+        "Distance": {"SensorType": 5, "Enabled": true, "MinDistance": 0.2, "MaxDistance": 40}
+      },
+      "Cameras": {
+        "rgb": {
+          "CaptureSettings": [{"ImageType": 0, "Width": 640, "Height": 480, "FOV_Degrees": 95}],
+          "X": 0.3, "Y": 0, "Z": 0.1, "Pitch": -45, "Roll": 0, "Yaw": 0
+        },
+        "ir": {
+          "CaptureSettings": [{"ImageType": 7, "Width": 640, "Height": 480, "FOV_Degrees": 95}],
+          "X": 0.3, "Y": 0, "Z": 0.1, "Pitch": -45, "Roll": 0, "Yaw": 0
+        }
+      }
+    }
+  }
+}
